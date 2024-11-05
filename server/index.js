@@ -5,24 +5,49 @@ const path = require('path')
 const axios = require('axios')
 
 const app = express()
-app.use(cors())
+app.use(cors({
+  origin: '*',  // 允许所有来源访问
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type']
+}));
 app.use(express.json())
-app.use('/images', express.static(path.join(__dirname, 'public', 'images')))
+app.use('/images', (req, res, next) => {
+  console.log('访问图片:', req.url);
+  next();
+}, express.static(path.join(__dirname, 'public', 'images')));
 
+// 添加更多日志输出
+console.log('开始连接数据库...');
 const connection = mysql.createConnection({
   host: 'localhost',
   user: 'root',
-  password: '12345',
-  database: 'company_directory'
-})
+  password: '12345',  // root 密码
+  database: 'company_directory',
+  port: 3306
+});
 
-connection.connect((err) => {
+// 添加连接监听
+connection.connect(function(err) {
   if (err) {
-    console.error('数据库连接失败:', err)
-    return
+    console.error('数据库连接失败:', err);
+    return;
   }
-  console.log('数据库连接成功!')
-})
+  console.log('数据库连接成功!');
+});
+
+// 添加错误监听
+connection.on('error', function(err) {
+  console.error('数据库错误:', err);
+});
+
+// 测试查询
+connection.query('SELECT 1', function(err, results) {
+  if (err) {
+    console.error('测试查询失败:', err);
+    return;
+  }
+  console.log('测试查询成功!');
+});
 
 // 获取地区列表
 app.get('/api/areas', (req, res) => {
@@ -40,7 +65,7 @@ app.get('/api/areas', (req, res) => {
       return res.status(500).json({ error: error.message });
     }
     
-    console.log('查询到的地区:', results);
+    console.log('查询到的区:', results);
     
     const areas = results
       .map(result => result.area)
@@ -147,7 +172,7 @@ app.get('/api/companies', async (req, res) => {
       if (!company.image_url) {
         company.image_url = 'https://picsum.photos/400/300'; // 默认图片
       } else if (company.image_url.startsWith('/images/')) {
-        // 确保本地图片路径正确
+        // 使用服务器IP
         company.image_url = `http://localhost:3000${company.image_url}`;
       }
     });
@@ -177,6 +202,6 @@ app.get('/api/companies', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`服务器运行在端口 ${PORT}`)
 }) 

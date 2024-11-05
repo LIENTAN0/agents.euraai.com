@@ -175,6 +175,7 @@ export default {
     const selectedSource = ref('')
     const selectedArea = ref('')
     const areas = ref([])
+    let lastUpdate = 0
 
     // 添加搜索键词
     const searchQuery = ref('')
@@ -273,20 +274,16 @@ export default {
     }
 
     const handleImageError = (e, company) => {
-      const imageId = company.id + 
-        (company.source === '修理工会' ? 100 : 
-         company.source === 'Map' ? 200 :
-         company.source === 'Facebook' ? 300 : 400);
-         
-      const defaultImageUrl = `https://picsum.photos/id/${imageId}/400/300`;
-      
-      if (e.target.src === defaultImageUrl || e.target.getAttribute('data-retried') === 'true') {
+      // 如果已经重试过,使用默认图片
+      if (e.target.getAttribute('data-retried') === 'true') {
+        e.target.src = 'https://picsum.photos/400/300';
         return;
       }
-      
-      console.log('图片加载失败:', company.name, e.target.src);
+
+      // 尝试使用本地图片
+      const localImagePath = `/images/${company.id}.jpg`; // 假设图片以公司ID命名
+      e.target.src = `http://localhost:3000${localImagePath}`;
       e.target.setAttribute('data-retried', 'true');
-      e.target.src = defaultImageUrl;
     }
 
     // 修改获取用户位置的函数
@@ -298,7 +295,7 @@ export default {
               latitude: position.coords.latitude,
               longitude: position.coords.longitude
             }
-            console.log('获取到用户位��:', userLocation.value);
+            console.log('获取到用户位置:', userLocation.value);
             fetchCompanies(); // 获取到位置后重新获取数据
           },
           error => {
@@ -995,13 +992,14 @@ export default {
   overflow-y: scroll; /* 启用纵向滚动 */
   position: relative;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  /* 隐藏滚动条 - Webkit 浏览器 */
-  &::-webkit-scrollbar {
-    display: none;
-  }
-  /* 隐藏滚动条 - Firefox */
+}
+
+.modal-content::-webkit-scrollbar {
+  display: none;
+}
+
+.modal-content {
   scrollbar-width: none;
-  /* 隐藏滚动条 - IE */
   -ms-overflow-style: none;
 }
 
